@@ -9,11 +9,16 @@ import datetime
 class face_rec():
     def __init__(self):
         self.retinaface_model = insightface.model_zoo.get_model('retinaface_mnet025_v1')
-        self.retinaface_model.prepare(ctx_id=-1, nms=0.4)
+        self.retinaface_model.prepare(ctx_id=0, nms=0.4)
         self.arcface_model = insightface.model_zoo.get_model('arcface_r100_v1')
-        self.arcface_model.prepare(ctx_id=-1)
-        self.known_face_encodings=np.load('faceEmbedding_casia.npy')
-        self.known_face_names=np.load('name_casia.npy')
+        self.arcface_model.prepare(ctx_id=0)
+        print('loading database...')
+        time_0 = datetime.datetime.now()
+        self.known_face_encodings=np.load('faceEmbedding_IJBC.npy')
+        self.known_face_names=np.load('name_IJBC.npy')
+        time_now = datetime.datetime.now()
+        loading_time = time_now - time_0
+        print('finish loading database, total ', loading_time.total_seconds(), 'seconds')
     def recognize(self, draw):
         height, width, _ = np.shape(draw)
         draw_rgb = cv2.cvtColor(draw, cv2.COLOR_BGR2RGB)
@@ -74,7 +79,7 @@ class face_rec():
 
 if __name__ == "__main__":
     dududu = face_rec()
-    image_path = 'test_data/000_2.bmp'
+    image_path = 'test_data/000_2.BMP'
     draw = utils.read_image_gbk(image_path)
     dududu.recognize(draw)
     cv2.imshow('Video', draw)
