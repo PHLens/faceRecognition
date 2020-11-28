@@ -47,6 +47,7 @@ model_path = './pretrained_models/MS1MV2-ResNet100-Arcface/model'
 gpu_id = 0
 img_feats, faceness_scores, face_names = get_image_feature(img_path, img_list_path, model_path, gpu_id)
 np.save('faceEmbedding_IJBC', img_feats)
+np.save('faceness_scores', faceness_scores)
 np.save('name_IJBC', face_names)
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))

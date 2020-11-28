@@ -79,7 +79,7 @@ class face_rec():
 
 if __name__ == "__main__":
     dududu = face_rec()
-    image_path = 'test_data/000_2.BMP'
+    image_path = 'test_data/obama3.jpg'
     draw = utils.read_image_gbk(image_path)
     dududu.recognize(draw)
     cv2.imshow('Video', draw)

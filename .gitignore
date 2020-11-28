@@ -2,6 +2,7 @@
 face_dataset/
 test_data/
 *.npy
+*.bin
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

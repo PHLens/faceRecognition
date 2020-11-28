@@ -13,7 +13,8 @@ class face_rec():
         self.retinaface_model.prepare(ctx_id=0, nms=0.4)
         self.arcface_model = insightface.model_zoo.get_model('arcface_r100_v1')
         self.arcface_model.prepare(ctx_id=0)
-        self.p = load_index('IJBC_index.bin', dim=512)
+        self.p = hnsw.load_index('IJB-C_index.bin', dim=512)
+        self.p.set_ef(25)
 
     def recognize(self, draw):
         height, width, _ = np.shape(draw)
@@ -47,10 +48,16 @@ class face_rec():
 
         face_names = []
         for face_encoding in face_encodings:
+            name = 'Unknown'
             # Query the elements for themselves
-            name, distances = self.p.knn_query(face_encoding, k=1) 
-            print(distances)
+            names, distances = self.p.knn_query(face_encoding, k=1) # 返回的距离是 1 - cosine
+            # print(distances)
+            matches = list(1 - distances >= 0.45)
+            best_match_index = np.argmax(distances)
+            if matches[best_match_index]:
+                name = str(names[best_match_index][0]) # names 多了个维度
             face_names.append(name)
+
         time_now = datetime.datetime.now()
         rec_time = time_now - time_0
         print('Recognition Time:', rec_time.total_seconds(), 'seconds')
@@ -68,7 +75,7 @@ class face_rec():
 
 if __name__ == "__main__":
     dududu = face_rec()
-    image_path = 'test_data/000_2.BMP'
+    image_path = 'test_data/17488.png'
     draw = utils.read_image_gbk(image_path)
     dududu.recognize(draw)
     cv2.imshow('Video', draw)
