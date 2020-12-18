@@ -14,8 +14,8 @@ class face_rec():
         self.arcface_model.prepare(ctx_id=0)
         print('loading database...')
         time_0 = datetime.datetime.now()
-        self.known_face_encodings=np.load('faceEmbedding_IJBC.npy')
-        self.known_face_names=np.load('name_IJBC.npy')
+        self.known_face_encodings=np.load('faceEmbedding_casia.npy')
+        self.known_face_names=np.load('name_casia.npy')
         time_now = datetime.datetime.now()
         loading_time = time_now - time_0
         print('finish loading database, total ', loading_time.total_seconds(), 'seconds')
@@ -79,9 +79,14 @@ class face_rec():
 
 if __name__ == "__main__":
     dududu = face_rec()
-    image_path = 'test_data/obama3.jpg'
-    draw = utils.read_image_gbk(image_path)
-    dududu.recognize(draw)
-    cv2.imshow('Video', draw)
-    cv2.waitKey(0)
+    video_capture = cv2.VideoCapture(0)
+
+    while True:
+        ret, draw = video_capture.read()
+        dududu.recognize(draw) 
+        cv2.imshow('Video', draw)
+        if cv2.waitKey(20) & 0xFF == ord('q'):
+            break
+
+    video_capture.release()
     cv2.destroyAllWindows()
