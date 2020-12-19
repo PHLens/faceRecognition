@@ -3,7 +3,7 @@ import cv2
 import os
 import numpy as np
 import utils.utils as utils
-import insightface
+#import insightface
 import datetime
 import hnsw
 import argparse
@@ -53,10 +53,11 @@ def get_embedding(model, img):
         return embedding
 
 class face_rec():
-    def __init__(self, model, index, dim):
-        self.retinaface_model = insightface.model_zoo.get_model('retinaface_mnet025_v1')
-        self.retinaface_model.prepare(ctx_id=0, nms=0.4)
-        self.arcface_model = model
+    def __init__(self, dt_model, rg_model, index, dim):
+        #self.retinaface_model = insightface.model_zoo.get_model('retinaface_mnet025_v1')
+        #self.retinaface_model.prepare(ctx_id=0, nms=0.4)
+        self.retinaface_model = dt_model
+        self.arcface_model = rg_model
         #self.arcface_model = insightface.model_zoo.get_model('arcface_r100_v1')
         #self.arcface_model.prepare(ctx_id=0)
         self.p = hnsw.load_index(index, dim=dim)
@@ -124,8 +125,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='do verification')
     # general
     parser.add_argument('--data-dir', default='', help='')
-    parser.add_argument('--model',
-                        default='./model/model-y1-test2/model,00',
+    parser.add_argument('--model1',
+                        default='./model/retinaface_mnet025_v1/mnet10,00',
+                        help='path to load model.')
+    parser.add_argument('--model2',
+                        default='./model/arcface_r100_v1/model,00',
                         help='path to load model.')
     parser.add_argument('--target',
                         default='./test_data/obama.jpg',
@@ -138,11 +142,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     #image_size = [112, 112]
     #print('image_size', image_size)
-    prefix = args.model.split(',')[0]
+    prefix1 = args.model1.split(',')[0]
+    prefix2 = args.model2.split(',')[0]
+    
+    dt_model = prepare(prefix1, args.gpu)
+    rg_model = prepare(prefix2, args.gpu)
 
-    recognition_model = prepare(prefix, args.gpu)
-
-    dududu = face_rec(recognition_model, args.index, args.dim)
+    dududu = face_rec(dt_model, rg_model, args.index, args.dim)
     image_path = args.target
     draw = utils.read_image_gbk(image_path)
     dududu.recognize(draw)

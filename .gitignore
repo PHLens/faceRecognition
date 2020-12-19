@@ -2,6 +2,7 @@ model/
 .DS_Store
 face_dataset/
 test_data/
+model/
 *.npy
 *.bin
 # Byte-compiled / optimized / DLL files
