@@ -7,5 +7,4 @@ matplotlib
 Pillow
 requests
 psutil
-insightface
 hnswlib

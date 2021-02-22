@@ -3,61 +3,22 @@ import cv2
 import os
 import numpy as np
 import utils.utils as utils
-#import insightface
+import retinaface
+import arcface
 import datetime
 import hnsw
 import argparse
 import mxnet as mx
 from mxnet import ndarray as nd
 
-def prepare(prefix, ctx_id):
-    pdir = os.path.dirname(prefix)
-    epoch = 0
-    for fname in os.listdir(pdir):
-        if not fname.endswith('.params'):
-            continue
-        _file = os.path.join(pdir, fname)
-        if _file.startswith(prefix):
-            epoch = int(fname.split('.')[0].split('-')[1])
-            
-    print('loading', prefix, epoch)
-    sym, arg_params, aux_params = mx.model.load_checkpoint(prefix, epoch)
-    all_layers = sym.get_internals()
-    sym = all_layers['fc1_output']
-    if ctx_id>=0:
-        ctx = mx.gpu(ctx_id)
-    else:
-        ctx = mx.cpu()
-    model = mx.mod.Module(symbol=sym, context=ctx, label_names = None)
-    image_size = (112, 112)
-    data_shape = (1,3) + image_size
-    model.bind(data_shapes=[('data', data_shape)])
-    model.set_params(arg_params, aux_params)
-    #warmup
-    # data = mx.nd.zeros(shape=data_shape)
-    # db = mx.io.DataBatch(data=(data,))
-    # model.forward(db, is_train=False)
-    # embedding = model.get_outputs()[0].asnumpy()
-    return model
-
-
-def get_embedding(model, img):
-        assert img.shape[2]==3 and img.shape[0:2]==(112, 112)
-        data = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        data = np.transpose(data, (2,0,1))
-        data = np.expand_dims(data, axis=0)
-        data = mx.nd.array(data)
-        db = mx.io.DataBatch(data=(data,))
-        model.forward(db, is_train=False)
-        embedding = model.get_outputs()[0].asnumpy()
-        return embedding
-
 class face_rec():
-    def __init__(self, dt_model, rg_model, index, dim):
+    def __init__(self, dt_model, rg_model, index, dim, ctx_id):
         #self.retinaface_model = insightface.model_zoo.get_model('retinaface_mnet025_v1')
         #self.retinaface_model.prepare(ctx_id=0, nms=0.4)
-        self.retinaface_model = dt_model
-        self.arcface_model = rg_model
+        self.retinaface_model = retinaface.FaceDetector(dt_model, rac='net3')
+        self.retinaface_model.prepare(ctx_id=ctx_id, nms=0.4)
+        self.arcface_model = arcface.FaceRecognition(rg_model)
+        self.arcface_model.prepare(ctx_id=ctx_id)
         #self.arcface_model = insightface.model_zoo.get_model('arcface_r100_v1')
         #self.arcface_model.prepare(ctx_id=0)
         self.p = hnsw.load_index(index, dim=dim)
@@ -90,12 +51,12 @@ class face_rec():
             new_img, _ = utils.Alignment_1(crop_img, landmark)
             # new_img = np.expand_dims(new_img,0)
             
-            face_encoding = get_embedding(self.arcface_model, new_img)
+            face_encoding = self.arcface_model.get_embedding(new_img)
             face_encodings.append(face_encoding)
 
         face_names = []
         for face_encoding in face_encodings:
-            print(face_encoding.shape)
+            #print(face_encoding.shape)
             name = 'Unknown'
             # Query the elements for themselves
             names, distances = self.p.knn_query(face_encoding, k=1) # 返回的距离是 1 - cosine
@@ -126,29 +87,24 @@ if __name__ == "__main__":
     # general
     parser.add_argument('--data-dir', default='', help='')
     parser.add_argument('--model1',
-                        default='./model/retinaface_mnet025_v1/mnet10,00',
+                        default='./model/retinaface_mnet025_v1/mnet10-0000.params',
                         help='path to load model.')
     parser.add_argument('--model2',
-                        default='./model/arcface_r100_v1/model,00',
+                        default='./model/arcface_r100_v1/model-0000.params',
                         help='path to load model.')
     parser.add_argument('--target',
                         default='./test_data/obama.jpg',
                         help='test targets.')
-    parser.add_argument('--index', default='./IJBC_index2.bin', help='')
+    parser.add_argument('--index', default='./database/IJBC_index_512.bin', help='')
     parser.add_argument('--gpu', default=0, type=int, help='gpu id')
     parser.add_argument('--batch-size', default=32, type=int, help='')
     parser.add_argument('--max', default='', type=str, help='')
-    parser.add_argument('--dim', default=128, type=int, help='')
+    parser.add_argument('--dim', default=512, type=int, help='')
     args = parser.parse_args()
-    #image_size = [112, 112]
-    #print('image_size', image_size)
-    prefix1 = args.model1.split(',')[0]
-    prefix2 = args.model2.split(',')[0]
-    
-    dt_model = prepare(prefix1, args.gpu)
-    rg_model = prepare(prefix2, args.gpu)
+    #prefix1 = args.model1.split(',')[0]
+    #prefix2 = args.model2.split(',')[0]
 
-    dududu = face_rec(dt_model, rg_model, args.index, args.dim)
+    dududu = face_rec(args.model1, args.model2, args.index, args.dim, args.gpu)
     image_path = args.target
     draw = utils.read_image_gbk(image_path)
     dududu.recognize(draw)

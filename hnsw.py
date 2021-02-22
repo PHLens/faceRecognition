@@ -57,5 +57,5 @@ def load_index(index_path, dim):
 
 
 if __name__ == "__main__":
-    create_index('faceEmbedding_IJBC.npy', 'name_IJBC.npy', 'IJB-C_index.bin')
+    create_index('faceEmbedding_IJBC.npy', 'name_IJBC.npy', './database/IJB-C_index.bin')
     
